@@ -12,19 +12,6 @@
       @request="onRequest"
       binary-state-sort
     >
-      <template v-slot:top-right>
-        <q-input
-          borderless
-          dense
-          debounce="300"
-          v-model="filter"
-          placeholder="Search"
-        >
-          <template v-slot:append>
-            <q-icon name="search" />
-          </template>
-        </q-input>
-      </template>
       <!--CUSTOM TABLE HEADER SLOT-->
       <template v-slot:header="props">
         <q-tr
@@ -601,6 +588,7 @@ export default {
   },
   methods: {
     onRequest (props) {
+      let self = this;
       const { page, rowsPerPage, sortBy, descending } = props.pagination;
 
       this.loading = true;
@@ -610,90 +598,60 @@ export default {
       // calculate starting row of data
       const startRow = (page - 1) * rowsPerPage;
 
-      // fetch data from "server"
-      this.fetchFromServer(
-        startRow,
-        rowsPerPage,
-        sortBy,
-        descending,
-        props.firsttime
-      )
-        .then(response => {
-          console.log(`Filtered successfully ${response}`);
-          // clear out existing data and add new
-          this.data.splice(0, this.data.length, ...response);
-          // don't forget to update local pagination object
-          this.pagination.page = page;
-          this.pagination.rowsPerPage = rowsPerPage;
-          this.pagination.sortBy = sortBy;
-          this.pagination.descending = descending;
-
-          // ...and turn of loading indicator
-          this.loading = false;
-        })
-        .catch(error => {
-          console.log(`Error ${error}`);
-        });
-    },
-
-    // emulate ajax call
-    // SELECT * FROM ... WHERE...LIMIT...
-    fetchFromServer (
-      startRow,
-      count,
-      sortBy,
-      descending,
-      firsttime = 0
-    ) {
       //Init and open db if not exist
-      let self = this;
       let columns = this.columns
         .filter(i => i.type === "varchar")
         .map(i => i.name);
-      if (firsttime) {
-        Utils.exists().then(response => {
-          return Utils.create(columns);
-        }).then(response => {
-          console.log('initialized ', response);
-          return Utils.bulkAdd(this.original);
-        }).then(response => {
-          console.log('filled data ', response);
-        }).catch(error => {
-          console.log('Error ', error);
-        });
-      }
 
-      if (sortBy) {
-        if (descending) {
-          var sort_response = db.deserts.orderBy(sortBy).reverse()
+      Utils.exists().then(response => {
+        return Utils.create(columns);
+      }).then(response => {
+        console.log('initialized ', response);
+        return Utils.bulkAdd(this.original);
+      }).then(response => {
+        console.log('filled data ', response);
+      }).catch(error => {
+        console.log('Error ', error);
+      }).then(response => {
+        if (sortBy) {
+          if (descending) {
+            var sort_response = db.deserts.orderBy(sortBy).reverse()
+          } else {
+            var sort_response = db.deserts.orderBy(sortBy)
+          }
         } else {
-          var sort_response = db.deserts.orderBy(sortBy)
+          sort_response = db.deserts.toCollection();
         }
-      } else {
-        sort_response = db.deserts.toCollection();
-      }
-      let actual_filters = Object.keys(self.filters).filter(column => ((self.filters[column] || '') !== ''));
-      // if (actual_filters.length > 0) {
-      var filter_response = sort_response.filter(row => {
-        let filter_count = actual_filters.map((column) => {
-          return row[column].toString().toLowerCase().indexOf(self.filters[column].toLowerCase()) > -1;
-        }).indexOf(false) < 0;
-        console.log(row);
-        console.log(filter_count);
-        return filter_count
-      });
-      filter_response.count().then(count => {
-        self.pagination.rowsNumber = count;
-      });
-      return filter_response
-        .offset(startRow)
-        .limit(count)
-        .toArray();
-    },
-    filterFn (rows, terms, cols, getCellValue) {
-      this.onRequest({
-        pagination: this.pagination,
-      })
+        let actual_filters = Object.keys(self.filters).filter(column => ((self.filters[column] || '') !== ''));
+        // if (actual_filters.length > 0) {
+        var filter_response = sort_response.filter(row => {
+          let filter_count = actual_filters.map((column) => {
+            return row[column].toString().toLowerCase().indexOf(self.filters[column].toLowerCase()) > -1;
+          }).indexOf(false) < 0;
+          return filter_count
+        });
+        filter_response.count().then(count => {
+          self.pagination.rowsNumber = count;
+        });
+        return filter_response
+          .offset(startRow)
+          .limit(rowsPerPage)
+          .toArray();
+      }).then(response => {
+        console.log('final response ', response);
+        // clear out existing data and add new
+        this.data.splice(0, this.data.length, ...response);
+        // don't forget to update local pagination object
+        this.pagination.page = page;
+        this.pagination.rowsPerPage = rowsPerPage;
+        this.pagination.sortBy = sortBy;
+        this.pagination.descending = descending;
+
+        // ...and turn of loading indicator
+        this.loading = false;
+      }).catch(error => {
+        console.log(`Error ${error}`);
+      });;
     }
   }
 };

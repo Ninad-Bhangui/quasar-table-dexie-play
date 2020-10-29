@@ -72,7 +72,6 @@
 <script>
 import Dexie from "dexie";
 import db from "../database";
-
 export default {
   data() {
     return {
@@ -635,21 +634,20 @@ export default {
       //Init and open db if not exist
       let self = this;
       if (firsttime) {
-        this.dexie_init()
-          .then(response => {
-            console.log(`initialized ${response}`);
-            self
-              .dexie_fill(this.original)
-              .then(response => {
-                console.log(`filled data ${response}`);
-              })
-              .catch(error => {
-                console.log(`Error during filling: ${error}`);
-              });
-          })
-          .catch(error => {
-            console.log(`Error during open: ${error}`);
-          });
+        this.dexie_check().then(response => {
+          if(response){
+            this.dexie_init();
+          } else {
+            console.log('already exists');
+          }
+        }).then(response => {
+          console.log('initialized ',response);
+          this.dexie_fill(this.original);
+        }).then(response => {
+          console.log('filled data ', response);
+        }).catch(error => {
+          console.log('Error ',error);
+        });
       }
 
       // const data = filter
@@ -713,6 +711,9 @@ export default {
         }
       });
       return count;
+    },
+    dexie_check() {
+      return Dexie.exists('datadb');
     },
     dexie_init() {
       let columns = this.columns

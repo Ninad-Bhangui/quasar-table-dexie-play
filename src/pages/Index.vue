@@ -7,7 +7,8 @@
       row-key="id"
       :pagination.sync="pagination"
       :loading="loading"
-      :filter="filter"
+      :filter="filters"
+      :filter-method="onRequest"
       @request="onRequest"
       binary-state-sort
     >
@@ -24,6 +25,46 @@
           </template>
         </q-input>
       </template>
+      <!--CUSTOM TABLE HEADER SLOT-->
+      <template v-slot:header="props">
+        <q-tr :props="props" class="bg-white">
+          <q-th
+            :props="props"
+            :key="col.name"
+            v-for="col in props.cols"
+            class="text-black"
+          >
+          <div class="row inline">
+              <div class="column">
+                <p>{{ col.label }}</p>
+              </div>
+              <div class="colum">
+
+              </div>
+            </div>
+          </q-th>
+        </q-tr>
+        <q-tr :props="props" class="bg-white">
+          <q-th :key="col.name" v-for="col in props.cols" style="padding: 0px 0px 0px 0px;">
+            <q-input
+              dense
+              debounce="300"
+              color="teal"
+              class="q-pa-xs text-white"
+              filled
+              v-model="filters[col.name]"
+            >
+              <template v-if="filters[col.name]" v-slot:append>
+                <q-icon
+                  name="cancel"
+                  @click.stop="filters[col.name] = ''"
+                  class="cursor-pointer"
+                />
+              </template>
+            </q-input>
+          </q-th>
+        </q-tr>
+      </template>
     </q-table>
   </q-page>
 </template>
@@ -36,6 +77,7 @@ export default {
   data() {
     return {
       filter: "",
+      filters: {},
       loading: false,
       pagination: {
         sortBy: undefined,
@@ -547,17 +589,10 @@ export default {
   methods: {
     onRequest(props) {
       const { page, rowsPerPage, sortBy, descending } = props.pagination;
-      const filter = props.filter;
 
       this.loading = true;
 
       // emulate server with dexie indexeddb
-      // update rowsCount with appropriate value
-      this.pagination.rowsNumber = this.getRowsNumberCount(filter);
-
-      // get all rows if "All" (0) is selected
-      const fetchCount =
-        rowsPerPage === 0 ? this.pagination.rowsNumber : rowsPerPage;
 
       // calculate starting row of data
       const startRow = (page - 1) * rowsPerPage;
@@ -565,8 +600,7 @@ export default {
       // fetch data from "server"
       this.fetchFromServer(
         startRow,
-        fetchCount,
-        filter,
+        rowsPerPage,
         sortBy,
         descending,
         props.firsttime
@@ -594,7 +628,6 @@ export default {
     fetchFromServer(
       startRow,
       count,
-      filter,
       sortBy,
       descending,
       firsttime = 0
@@ -631,13 +664,23 @@ export default {
       } else {
         sort_response = db.deserts.toCollection();
       }
-      if (filter) {
-        var filter_response = sort_response.filter(desert => {
-          return desert.name.toLowerCase().indexOf(filter.toLowerCase()) > -1;
+      let actual_filters = Object.keys(self.filters).filter(column => ((self.filters[column] || '') !== ''));
+      // if (actual_filters.length > 0) {
+        var filter_response = sort_response.filter(row => {
+          let filter_count = actual_filters.map((column) => {
+            return row[column].toString().toLowerCase().indexOf(self.filters[column].toLowerCase()) > -1;
+          }).indexOf(false) < 0;
+          console.log(row);
+          console.log(filter_count);
+          return filter_count
+          // return desert.name.toLowerCase().indexOf(filter.toLowerCase()) > -1;
         });
-      } else {
-        var filter_response = sort_response;
-      }
+      // } else {
+      //   var filter_response = sort_response;
+      // }
+      filter_response.count().then(count => {
+        self.pagination.rowsNumber = count;
+      });
         return filter_response
           .offset(startRow)
           .limit(count)
@@ -682,6 +725,11 @@ export default {
     },
     dexie_fill(data) {
       return db.deserts.bulkAdd(data);
+    },
+    filterFn(rows, terms,cols,getCellValue) {
+      this.onRequest({
+        pagination: this.pagination,
+      })
     }
   }
 };

@@ -600,7 +600,6 @@ export default {
 
       //Init and open db if not exist
       let columns = this.columns
-        .filter(i => i.type === "varchar")
         .map(i => i.name);
 
       Utils.exists().then(response => {

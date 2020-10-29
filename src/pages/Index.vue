@@ -27,14 +27,17 @@
       </template>
       <!--CUSTOM TABLE HEADER SLOT-->
       <template v-slot:header="props">
-        <q-tr :props="props" class="bg-white">
+        <q-tr
+          :props="props"
+          class="bg-white"
+        >
           <q-th
             :props="props"
             :key="col.name"
             v-for="col in props.cols"
             class="text-black"
           >
-          <div class="row inline">
+            <div class="row inline">
               <div class="column">
                 <p>{{ col.label }}</p>
               </div>
@@ -44,8 +47,15 @@
             </div>
           </q-th>
         </q-tr>
-        <q-tr :props="props" class="bg-white">
-          <q-th :key="col.name" v-for="col in props.cols" style="padding: 0px 0px 0px 0px;">
+        <q-tr
+          :props="props"
+          class="bg-white"
+        >
+          <q-th
+            :key="col.name"
+            v-for="col in props.cols"
+            style="padding: 0px 0px 0px 0px;"
+          >
             <q-input
               dense
               debounce="300"
@@ -54,7 +64,10 @@
               filled
               v-model="filters[col.name]"
             >
-              <template v-if="filters[col.name]" v-slot:append>
+              <template
+                v-if="filters[col.name]"
+                v-slot:append
+              >
                 <q-icon
                   name="cancel"
                   @click.stop="filters[col.name] = ''"
@@ -74,7 +87,7 @@ import Dexie from "dexie";
 import db from "../db/db.js";
 import Utils from "../db/utils.js";
 export default {
-  data() {
+  data () {
     return {
       filter: "",
       filters: {},
@@ -578,7 +591,7 @@ export default {
       ]
     };
   },
-  mounted() {
+  mounted () {
     // get initial data from server (1st page)
     this.onRequest({
       pagination: this.pagination,
@@ -587,7 +600,7 @@ export default {
     });
   },
   methods: {
-    onRequest(props) {
+    onRequest (props) {
       const { page, rowsPerPage, sortBy, descending } = props.pagination;
 
       this.loading = true;
@@ -625,7 +638,7 @@ export default {
 
     // emulate ajax call
     // SELECT * FROM ... WHERE...LIMIT...
-    fetchFromServer(
+    fetchFromServer (
       startRow,
       count,
       sortBy,
@@ -636,25 +649,25 @@ export default {
       let self = this;
       if (firsttime) {
         Utils.exists().then(response => {
-          if(response){
+          if (response) {
             let columns = self.columns
-        .filter(i => i.type === "varchar")
-        .map(i => i.name);
+              .filter(i => i.type === "varchar")
+              .map(i => i.name);
             return Utils.create(columns);
           } else {
             console.log('already exists');
           }
         }).then(response => {
-          console.log('initialized ',response);
+          console.log('initialized ', response);
           return Utils.bulkAdd(this.original);
         }).then(response => {
           console.log('filled data ', response);
         }).catch(error => {
-          console.log('Error ',error);
+          console.log('Error ', error);
         });
       }
 
-      if(sortBy) {
+      if (sortBy) {
         if (descending) {
           var sort_response = db.deserts.orderBy(sortBy).reverse()
         } else {
@@ -665,23 +678,23 @@ export default {
       }
       let actual_filters = Object.keys(self.filters).filter(column => ((self.filters[column] || '') !== ''));
       // if (actual_filters.length > 0) {
-        var filter_response = sort_response.filter(row => {
-          let filter_count = actual_filters.map((column) => {
-            return row[column].toString().toLowerCase().indexOf(self.filters[column].toLowerCase()) > -1;
-          }).indexOf(false) < 0;
-          console.log(row);
-          console.log(filter_count);
-          return filter_count
-        });
+      var filter_response = sort_response.filter(row => {
+        let filter_count = actual_filters.map((column) => {
+          return row[column].toString().toLowerCase().indexOf(self.filters[column].toLowerCase()) > -1;
+        }).indexOf(false) < 0;
+        console.log(row);
+        console.log(filter_count);
+        return filter_count
+      });
       filter_response.count().then(count => {
         self.pagination.rowsNumber = count;
       });
-        return filter_response
-          .offset(startRow)
-          .limit(count)
-          .toArray();
+      return filter_response
+        .offset(startRow)
+        .limit(count)
+        .toArray();
     },
-    filterFn(rows, terms,cols,getCellValue) {
+    filterFn (rows, terms, cols, getCellValue) {
       this.onRequest({
         pagination: this.pagination,
       })

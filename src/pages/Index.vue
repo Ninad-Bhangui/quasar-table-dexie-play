@@ -71,7 +71,8 @@
 
 <script>
 import Dexie from "dexie";
-import db from "../database";
+import db from "../db/db.js";
+import Utils from "../db/utils.js";
 export default {
   data() {
     return {
@@ -634,15 +635,18 @@ export default {
       //Init and open db if not exist
       let self = this;
       if (firsttime) {
-        this.dexie_check().then(response => {
+        Utils.exists().then(response => {
           if(response){
-            return this.dexie_init();
+            let columns = self.columns
+        .filter(i => i.type === "varchar")
+        .map(i => i.name);
+            return Utils.create(columns);
           } else {
             console.log('already exists');
           }
         }).then(response => {
           console.log('initialized ',response);
-          return this.dexie_fill(this.original);
+          return Utils.bulkAdd(this.original);
         }).then(response => {
           console.log('filled data ', response);
         }).catch(error => {
@@ -676,35 +680,6 @@ export default {
           .offset(startRow)
           .limit(count)
           .toArray();
-    },
-
-    // emulate 'SELECT count(*) FROM ...WHERE...'
-    getRowsNumberCount(filter) {
-      if (!filter) {
-        return this.original.length;
-      }
-      let count = 0;
-      this.original.forEach(treat => {
-        if (treat.name.includes(filter)) {
-          ++count;
-        }
-      });
-      return count;
-    },
-    dexie_check() {
-      return Dexie.exists('datadb');
-    },
-    dexie_init() {
-      let columns = this.columns
-        .filter(i => i.type === "varchar")
-        .map(i => i.name);
-      db.version(1).stores({
-        deserts: `++id,${columns.join(",")}`
-      });
-      return db.open();
-    },
-    dexie_fill(data) {
-      return db.deserts.bulkAdd(data);
     },
     filterFn(rows, terms,cols,getCellValue) {
       this.onRequest({

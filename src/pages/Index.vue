@@ -647,16 +647,12 @@ export default {
     ) {
       //Init and open db if not exist
       let self = this;
+      let columns = this.columns
+        .filter(i => i.type === "varchar")
+        .map(i => i.name);
       if (firsttime) {
         Utils.exists().then(response => {
-          if (response) {
-            let columns = self.columns
-              .filter(i => i.type === "varchar")
-              .map(i => i.name);
-            return Utils.create(columns);
-          } else {
-            console.log('already exists');
-          }
+          return Utils.create(columns);
         }).then(response => {
           console.log('initialized ', response);
           return Utils.bulkAdd(this.original);

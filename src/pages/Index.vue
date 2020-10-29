@@ -636,13 +636,13 @@ export default {
       if (firsttime) {
         this.dexie_check().then(response => {
           if(response){
-            this.dexie_init();
+            return this.dexie_init();
           } else {
             console.log('already exists');
           }
         }).then(response => {
           console.log('initialized ',response);
-          this.dexie_fill(this.original);
+          return this.dexie_fill(this.original);
         }).then(response => {
           console.log('filled data ', response);
         }).catch(error => {
@@ -650,9 +650,6 @@ export default {
         });
       }
 
-      // const data = filter
-      //   ? this.original.filter(row => row.name.includes(filter))
-      //   : this.original.slice()
       if(sortBy) {
         if (descending) {
           var sort_response = db.deserts.orderBy(sortBy).reverse()
@@ -671,11 +668,7 @@ export default {
           console.log(row);
           console.log(filter_count);
           return filter_count
-          // return desert.name.toLowerCase().indexOf(filter.toLowerCase()) > -1;
         });
-      // } else {
-      //   var filter_response = sort_response;
-      // }
       filter_response.count().then(count => {
         self.pagination.rowsNumber = count;
       });
@@ -683,20 +676,6 @@ export default {
           .offset(startRow)
           .limit(count)
           .toArray();
-      // // handle sortBy
-      // if (sortBy) {
-      //   const sortFn = sortBy === 'desc'
-      //     ? (descending
-      //       ? (a, b) => (a.name > b.name ? -1 : a.name < b.name ? 1 : 0)
-      //       : (a, b) => (a.name > b.name ? 1 : a.name < b.name ? -1 : 0)
-      //     )
-      //     : (descending
-      //       ? (a, b) => (parseFloat(b[sortBy]) - parseFloat(a[sortBy]))
-      //       : (a, b) => (parseFloat(a[sortBy]) - parseFloat(b[sortBy]))
-      //     )
-      //   data.sort(sortFn)
-      // }
-      // return data.slice(startRow, startRow + count)
     },
 
     // emulate 'SELECT count(*) FROM ...WHERE...'

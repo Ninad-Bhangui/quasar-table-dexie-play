@@ -111,9 +111,6 @@ export default {
       // calculate starting row of data
       const startRow = (page - 1) * rowsPerPage;
 
-      //Init and open db if not exist
-      let columns = this.columns
-        .map(i => i.name);
       // var data = [];
       fetch('https://raw.githubusercontent.com/Biuni/PokemonGO-Pokedex/master/pokedex.json').then(response => {
         return response.json()
@@ -122,7 +119,7 @@ export default {
         return Utils.exists();
       }).then(response => {
         let columns = Object.keys(self.original[0]);
-        self.columns = columns.map(col => {
+        self.columns = columns.filter(col => col != 'img').map(col => {
           return {
             name: col,
             type: typeof self.original[0][col],
